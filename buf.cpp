@@ -45,9 +45,52 @@ BufMgr::~BufMgr() {
 	// TODO: Implement this method by looking at the description in the writeup.
 }
 
+/*
+Allocates a free frame using the clock algorithm; if necessary, writing a dirty page back to disk. Returns BUFFEREXCEEDED if all buffer frames are pinned, UNIXERR if the call to the I/O layer returned an error when a dirty page was being written to disk and OK otherwise. This private method will get called by the readPage() and allocPage() methods described below.
 
+Make sure that if the buffer frame allocated has a valid page in it, that you remove the appropriate entry from the hash table.
+*/
 const Status BufMgr::allocBuf(int & frame) {
-	// TODO: Implement this method by looking at the description in the writeup.
+
+	int state = ADVANCE_CLOCK;
+	while (state != DONE) {
+		switch (state) {
+			case ADVANCE_CLOCK:
+				clockHand = (clockHand + 1) % numBufs;
+				state = bufTable[clockHand].valid ? REF_CHECK : WRITE_BACK;
+				break;
+
+			case REF_CHECK:
+				if (bufTable[clockHand].refbit) {
+					bufTable[clockHand].refbit = false;
+					state = ADVANCE_CLOCK;
+				} else {
+					state = PINNED_CHECK;
+				}
+
+				break;
+
+			case PINNED_CHECK:
+				state = (bufTable[clockHand].pinCnt > 0) ? ADVANCE_CLOCK : DIRTY_CHECK;
+				break;
+
+			case DIRTY_CHECK:
+				state = bufTable[clockHand].dirty ? FLUSH_PAGE : DONE;
+
+				break;
+
+			case FLUSH_PAGE:
+				break;
+
+			case DONE:
+			case default:
+				state = DONE;
+				break;
+		}
+	}
+
+	// ALLOCATE FREE FRAME!!!!!!!!!!!!!!!!!!!
+
 	return OK;
 }
 
@@ -85,9 +128,20 @@ const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page)  {
 	return OK;
 }
 
-
+/*
+Check to see if the page actually exists in the buffer pool by looking it up in the hash table. If it does exists, clear the page, remove the corresponding entry from the hash table and dispose the page in the file as well. Return the status of the call to dispose the page in the file.
+*/
 const Status BufMgr::disposePage(File* file, const int pageNo) {
-	// TODO: Implement this method by looking at the description in the writeup.
+	int frameNo;
+
+	// Check to see if page exists in buffer pool
+	Status found = hashTable->lookup(file, pageNo, frameNo);
+	if (found != OK)
+		return found;
+
+	// Clear the page
+	bufTable[frameNo]->Clear();
+
 	return OK;
 }
 

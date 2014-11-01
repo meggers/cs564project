@@ -5,6 +5,16 @@
 // define if debug output wanted
 //#define DEBUGBUF
 
+// States of the clocking algorithm
+enum CLOCK_ALG {
+	ADVANCE_CLOCK,
+	REF_CHECK,
+	PINNED_CHECK,
+	DIRTY_CHECK,
+	FLUSH_PAGE,
+	DONE
+};
+
 // declarations for buffer pool hash table
 struct hashBucket
 {
