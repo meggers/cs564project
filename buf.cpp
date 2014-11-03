@@ -105,20 +105,22 @@ const Status BufMgr::unPinPage(File* file, const int PageNo,
 const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page)  {
 	
 	int frameNumber;
+	Page* pagePtr;
 	
 	file->allocatePage(pageNo); // Get the pageNo that was allocated on disk
 	Status try1 = allocBuf(frameNumber); // Get the frame number that was allocated
 	
 	if (try1 != OK)
-		return attempt; // Return the error that was thrown in allocBuf()
+		return try1; // Return the error that was thrown in allocBuf()
 		
 	Status try2 = hashTable->insert(file, pageNo, frameNumber); // Keep track of things
 	
 	if (try2 != OK)
-		return attempt; // Return the error that was thrown in insert()
+		return try2; // Return the error that was thrown in insert()
 	
-	&(bufTable[frameNumber]).Set(File, PageNo); // Set the frame
-	page = bufTable[frameNumber]; // Return the pointer to the frame	
+	bufTable[frameNumber].Set(file, pageNo); // Set the frame
+	pagePtr = &(bufPool[frameNumber]); // Return the pointer to the frame	
+	page = pagePtr;
 	
 	return OK;
 }
@@ -131,7 +133,6 @@ const Status BufMgr::disposePage(File* file, const int pageNo) {
 
 
 const Status BufMgr::flushFile(const File* file) {
-	// TODO: Implement this method by looking at the description in the writeup.
 	return OK;
 }
 
