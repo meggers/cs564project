@@ -42,7 +42,33 @@ BufMgr::BufMgr(const int bufs)
 
 
 BufMgr::~BufMgr() {
-	// TODO: Implement this method by looking at the description in the writeup.
+	
+	BufDesc* currentFrame;
+	Page* currentPage;
+	int currentPageNo;	
+
+	for(int i=0; i<numBufs; i++) // Loop through, unpinning everything
+	{
+		currentFrame = &bufTable[i]; // Retrieve the frame metadata
+		currentFrame->pinCnt = 0; // 'Unpin' all the frames so that flushing wont fail
+	}
+	
+	for(int i=0; i<numBufs; i++) // Loop through, flushing dirty pages
+	{
+		currentFrame = &bufTable[i]; // Retrieve the frame metadata
+		currentPageNo = currentFrame->pageNo;
+		currentPage = &bufPool[i]; // Retrieve the actual page of records
+		
+		if(currentFrame->dirty) // Write back to disk if dirty
+		{
+			(currentFrame->file)->writePage(currentPageNo, currentPage);
+		}
+		hashTable->remove(currentFrame->file, currentPageNo); // Remove from hashtable
+	}	
+	
+	// Deallocate the space in memory
+	memset(bufTable, 0, numBufs * sizeof(BufDesc));
+	memset(bufPool, 0, numBufs * sizeof(Page));
 }
 
 
