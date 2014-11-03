@@ -103,7 +103,23 @@ const Status BufMgr::unPinPage(File* file, const int PageNo,
 
 
 const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page)  {
-	// TODO: Implement this method by looking at the description in the writeup.
+	
+	int frameNumber;
+	
+	file->allocatePage(pageNo); // Get the pageNo that was allocated on disk
+	Status try1 = allocBuf(frameNumber); // Get the frame number that was allocated
+	
+	if (try1 != OK)
+		return attempt; // Return the error that was thrown in allocBuf()
+		
+	Status try2 = hashTable->insert(file, pageNo, frameNumber); // Keep track of things
+	
+	if (try2 != OK)
+		return attempt; // Return the error that was thrown in insert()
+	
+	&(bufTable[frameNumber]).Set(File, PageNo); // Set the frame
+	page = bufTable[frameNumber]; // Return the pointer to the frame	
+	
 	return OK;
 }
 
