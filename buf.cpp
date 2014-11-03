@@ -121,9 +121,35 @@ const Status BufMgr::readPage(File* file, const int PageNo, Page*& page) {
 }
 
 
-const Status BufMgr::unPinPage(File* file, const int PageNo, 
-			       const bool dirty) {
-	// TODO: Implement this method by looking at the description in the writeup.
+const Status BufMgr::unPinPage(File* file, const int PageNo, const bool dirty) {
+	
+	int frameNumber;
+	Status try1;
+	BufDesc* frameData;
+	
+	try1 = hashTable->lookup(file, PageNo, frameNumber); // Retrieve the frameNumber from the hashtable
+	
+	if(try1 != OK)
+	{
+		return try1; // Return the error thrown by the hashtable (HASHNOTFOUND)
+	}
+	
+	frameData = &bufTable[frameNumber]; // Get the frame metadata
+	
+	if(dirty)
+	{
+		frameData->dirty = true;
+	}
+	
+	if(frameData->pinCnt <= 0) // Check pin status
+	{
+		return PAGENOTPINNED;
+	}
+	else
+	{
+		frameData->pinCnt = (frameData->pinCnt) - 1; // Decrement the pin count
+	}
+	
 	return OK;
 }
 
