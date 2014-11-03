@@ -133,6 +133,34 @@ const Status BufMgr::disposePage(File* file, const int pageNo) {
 
 
 const Status BufMgr::flushFile(const File* file) {
+
+	BufDesc* currentFrame;
+	Page* currentPage;
+	int currentPageNo;	
+
+	for(int i=0; i<numBufs; i++)
+	{
+		currentFrame = &bufTable[i]; // Retrieve the frame metadata
+		currentPageNo = currentFrame->pageNo;
+		currentPage = &bufPool[i]; // Retrieve the actual page of records
+		
+		if(currentFrame->pinCnt > 0)
+		{
+			return PAGEPINNED; // We can stop as soon as we realize there are still pages pinned
+		}
+		
+		if(currentFrame->file == file) // Check if this frame belongs to this file
+		{		
+			if(currentFrame->dirty) // Write back to disk if dirty
+			{
+				(currentFrame->file)->writePage(currentPageNo, currentPage);
+				currentFrame->dirty = false;
+			}
+			hashTable->remove(currentFrame->file, currentPageNo); // Remove from hashtable
+			currentFrame->Clear(); // Clear the frame for use by another page
+		}
+	}
+
 	return OK;
 }
 
