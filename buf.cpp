@@ -73,7 +73,9 @@ BufMgr::~BufMgr() {
 
 
 const Status BufMgr::allocBuf(int & frame) {
-	// TODO: Implement this method by looking at the description in the writeup.
+	
+	
+	
 	return OK;
 }
 
@@ -179,8 +181,27 @@ const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page)  {
 
 
 const Status BufMgr::disposePage(File* file, const int pageNo) {
-	// TODO: Implement this method by looking at the description in the writeup.
-	return OK;
+	
+	int frameNumber;
+	Status try1, try2; // Used for methods that return status'
+	BufDesc* frameData;
+	File* fileToPurge;	
+	
+	try1 = hashTable->lookup(file, pageNo, frameNumber);
+	
+	if(try1 != HASHNOTFOUND)
+	{
+		frameData = &bufTable[frameNumber];
+		frameFile = frameData->file;
+		framePage = frameData->pageNo;
+		
+		hashTable->remove(frameFile, framePage); // Remove entry from the hashTable
+		try2 = frameFile->disposePage(framePage); // Dispose of the page on disk
+		
+		frameData->Clear(); // Wipe the frame clean
+	}
+		
+	return try2;
 }
 
 
