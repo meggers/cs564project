@@ -51,30 +51,44 @@ const Status BufMgr::allocBuf(int & frame) {
 	return OK;
 }
 
-/* Returns the address of the page in the buffer table
- */
+
 const Status BufMgr::readPage(File* file, const int PageNo, Page*& page) {
 	
 	int frameNumber;
-	Status pageStatus = hashTable->lookup(file, PageNo, frameNumber);
+	BufDesc* existingFrame;
+	Page* existingPage;
+	Status pageStatus;
+	
+	pageStatus = hashTable->lookup(file, PageNo, frameNumber);
 	
 	switch(pageStatus)
 	{
 		case OK:
-			bufTable[frameNumber].SET?;
-			page = &bufPool[frameNumber]
-			break;
+		{
+			existingFrame = &(bufTable[frameNumber]);
+			existingPage = &(bufPool[frameNumber]);
+			existingFrame->refbit = true;
+			existingFrame->pinCnt++;
+			page = existingPage;
+			break;		
+		}
 		case HASHNOTFOUND:
-			Status attempt = allocBuf(PageNo);
+		{
+			Status attempt = allocBuf(frameNumber); // Allocate space
 			
 			if(attempt != OK)
-				return attempt;
+				return attempt; // Return the error that was thrown in allocBuf()
 				
-			hashTable->insert(file, PageNo, 
-			
+			file->readPage(PageNo, page); // Read in new page; Not sure about parameters here
+			hashTable->insert(file, PageNo, frameNumber); // Insert page into the hashTable
+			bufTable[frameNumber].Set(file, PageNo);
+			page = &(bufPool[frameNumber]); // Not sure if this is the right address...
 			break;
+		}
 		default:
+		{
 			return NOTUSED1;
+		}
 	}	
 	
 	return OK;
