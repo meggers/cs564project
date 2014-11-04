@@ -74,8 +74,52 @@ BufMgr::~BufMgr() {
 
 const Status BufMgr::allocBuf(int & frame) {
 	
+	for(int i=0; i<numBufs*2; i++) // Loop over every frame twice (see post CID=145)
+	{
+		advanceClock();
+		BufDesc* frameData = &bufTable[clockHand];
 	
+		if(frameData->valid) // Valid Set? YES
+		{
+			if(frameData->refbit) // refBit Set? YES
+			{
+				frameData->refbit = false; // Clear refbit
+				continue; // Skip to the next frame
+			}
+			else // refBit Set? NO
+			{
+				if(frameData->pinCnt > 0) // Page Pinned? YES
+				{
+					continue; // Skip to the next frame
+				}
+				else // Page Pinned? NO
+				{
+					if(frameData->dirty) // Dirty Bit Set? YES
+					{
+						flushFile(frameData->file);
+						frameData->Clear(); // See post CID=162
+						frame = clockHand;
+						return OK;
+					}
+					else // Dirty Bit Set? NO
+					{
+						frameData->Clear(); // See post CID=162
+						frame = clockHand;
+						return OK;
+					}
+				}
+			}
+		}
+		else // Valid Set? NO
+		{
+			frameData->Clear(); // See post CID=162
+			frame = clockHand;
+			return OK;
+		}
+	}
+		
 	
+
 	return OK;
 }
 
@@ -182,10 +226,10 @@ const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page)  {
 
 const Status BufMgr::disposePage(File* file, const int pageNo) {
 	
-	int frameNumber;
+	int frameNumber, framePage;
 	Status try1, try2; // Used for methods that return status'
 	BufDesc* frameData;
-	File* fileToPurge;	
+	File* frameFile;	
 	
 	try1 = hashTable->lookup(file, pageNo, frameNumber);
 	
@@ -216,14 +260,14 @@ const Status BufMgr::flushFile(const File* file) {
 		currentFrame = &bufTable[i]; // Retrieve the frame metadata
 		currentPageNo = currentFrame->pageNo;
 		currentPage = &bufPool[i]; // Retrieve the actual page of records
-		
-		if(currentFrame->pinCnt > 0)
-		{
-			return PAGEPINNED; // We can stop as soon as we realize there are still pages pinned
-		}
-		
+				
 		if(currentFrame->file == file) // Check if this frame belongs to this file
-		{		
+		{	
+			if(currentFrame->pinCnt > 0)
+			{
+				return PAGEPINNED; // We can stop as soon as we realize there are still pages pinned
+			}
+			
 			if(currentFrame->dirty) // Write back to disk if dirty
 			{
 				(currentFrame->file)->writePage(currentPageNo, currentPage);
