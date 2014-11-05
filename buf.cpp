@@ -76,10 +76,11 @@ const Status BufMgr::allocBuf(int & frame) {
 
 			case DIRTY_CHECK:
 				state = bufTable[clockHand].dirty ? FLUSH_PAGE : DONE;
-
 				break;
 
 			case FLUSH_PAGE:
+				//wtf
+				Status err = bufTable[clockHand].file->writePage( , );
 				break;
 
 			case DONE:
