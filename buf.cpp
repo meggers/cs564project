@@ -96,7 +96,11 @@ const Status BufMgr::allocBuf(int & frame) {
 				{
 					if(frameData->dirty) // Dirty Bit Set? YES
 					{
-						flushFile(frameData->file);
+						Status fileFlush = flushFile(frameData->file);
+						
+						if(fileFlush != OK)
+							return fileFlush;
+						
 						frameData->Clear(); // See post CID=162
 						frame = clockHand;
 						return OK;
@@ -116,11 +120,9 @@ const Status BufMgr::allocBuf(int & frame) {
 			frame = clockHand;
 			return OK;
 		}
-	}
-		
-	
+	}	
 
-	return OK;
+	return BUFFEREXCEEDED;
 }
 
 
@@ -169,31 +171,26 @@ const Status BufMgr::readPage(File* file, const int PageNo, Page*& page) {
 
 const Status BufMgr::unPinPage(File* file, const int PageNo, const bool dirty) {
 	
-	int frameNumber;
+	int frameNumber, oldCount;
 	Status try1;
 	BufDesc* frameData;
 	
 	try1 = hashTable->lookup(file, PageNo, frameNumber); // Retrieve the frameNumber from the hashtable
 	
 	if(try1 != OK)
-	{
 		return try1; // Return the error thrown by the hashtable (HASHNOTFOUND)
-	}
 	
 	frameData = &bufTable[frameNumber]; // Get the frame metadata
 	
 	if(dirty)
-	{
 		frameData->dirty = true;
-	}
 	
 	if(frameData->pinCnt <= 0) // Check pin status
-	{
 		return PAGENOTPINNED;
-	}
 	else
 	{
-		frameData->pinCnt = (frameData->pinCnt) - 1; // Decrement the pin count
+		oldCount = frameData->pinCnt;
+		frameData->pinCnt = oldCount - 1; // Decrement the pin count
 	}
 	
 	return OK;
@@ -205,8 +202,12 @@ const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page)  {
 	int frameNumber;
 	Page* pagePtr;
 	
-	file->allocatePage(pageNo); // Get the pageNo that was allocated on disk
-	Status try1 = allocBuf(frameNumber); // Get the frame number that was allocated
+	Status try3 = file->allocatePage(pageNo); // Get the pageNo that was allocated in the file
+	
+	if(try3 != OK)
+		return try3; // Return the error thrown by the file class (probably UNIXERR)
+	
+	Status try1 = allocBuf(frameNumber); // Get the frame number that was allocated in the buffer
 	
 	if (try1 != OK)
 		return try1; // Return the error that was thrown in allocBuf()
@@ -217,7 +218,7 @@ const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page)  {
 		return try2; // Return the error that was thrown in insert()
 	
 	bufTable[frameNumber].Set(file, pageNo); // Set the frame
-	pagePtr = &(bufPool[frameNumber]); // Return the pointer to the frame	
+	pagePtr = &(bufPool[frameNumber]); // Return the pointer to the actual data frame	
 	page = pagePtr;
 	
 	return OK;
