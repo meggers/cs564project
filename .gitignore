@@ -28,3 +28,6 @@
 *.exe
 *.out
 *.app
+
+.__afs*
+.metadata/*
