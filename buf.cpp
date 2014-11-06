@@ -102,6 +102,7 @@ const Status BufMgr::allocBuf(int & frame) {
 							return fileFlush;
 						
 						frameData->Clear(); // See post CID=162
+						hashTable->remove(frameData->file, frameData->pageNo); // Make sure to remove the entry!
 						frame = clockHand;
 						return OK;
 					}
