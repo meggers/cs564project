@@ -1,6 +1,8 @@
 #ifndef DB_H
 #define DB_H
 
+
+
 #include <sys/types.h>
 #include <functional>
 #include "error.h"
@@ -9,7 +11,7 @@ using namespace std;
 
 // define if debug output wanted
 
-//#define DEBUGIO
+#define DEBUGIO
 //#define DEBUGFREE
 
 // forward class definition for db

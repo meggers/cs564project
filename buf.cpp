@@ -149,10 +149,18 @@ const Status BufMgr::readPage(File* file, const int PageNo, Page*& page) {
 			if(attempt != OK)
 				return attempt; // Return the error that was thrown in allocBuf()
 				
-			file->readPage(PageNo, page); // Read in new page; Not sure about parameters here
-			hashTable->insert(file, PageNo, frameNumber); // Insert page into the hashTable
+			attempt = file->readPage(PageNo, &bufPool[frameNumber]); // Read in new page; Not sure about parameters here
+
+			if (attempt != OK)
+				return attempt;
+
+			attempt = hashTable->insert(file, PageNo, frameNumber); // Insert page into the hashTable
+
+			if (attempt != OK)
+				return attempt;
+
 			bufTable[frameNumber].Set(file, PageNo);
-			page = &(bufPool[frameNumber]); // Not sure if this is the right address...
+			page = &bufPool[frameNumber]; // Not sure if this is the right address...
 			break;
 		}
 		default:
