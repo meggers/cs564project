@@ -189,14 +189,16 @@ const Status BufMgr::unPinPage(File* file, const int PageNo, const bool dirty) {
 	if(dirty)
 		frameData->dirty = true;
 	
-	if(frameData->pinCnt <= 0) // Check pin status
+	if(frameData->pinCnt <= 0) { // Check pin status
 		return PAGENOTPINNED;
+	}
 	else
 	{
 		oldCount = frameData->pinCnt;
 		frameData->pinCnt = oldCount - 1; // Decrement the pin count
+		
 	}
-	
+
 	return OK;
 }
 
@@ -207,19 +209,13 @@ const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page)  {
 	Page* pagePtr;
 	
 	Status try3 = file->allocatePage(pageNo); // Get the pageNo that was allocated in the file
-	
-	if(try3 != OK)
-		return try3; // Return the error thrown by the file class (probably UNIXERR)
+	if(try3 != OK) return try3; // Return the error thrown by the file class (probably UNIXERR)
 	
 	Status try1 = allocBuf(frameNumber); // Get the frame number that was allocated in the buffer
-	
-	if (try1 != OK)
-		return try1; // Return the error that was thrown in allocBuf()
+	if (try1 != OK) return try1; // Return the error that was thrown in allocBuf()
 		
 	Status try2 = hashTable->insert(file, pageNo, frameNumber); // Keep track of things
-	
-	if (try2 != OK)
-		return try2; // Return the error that was thrown in insert()
+	if (try2 != OK) return try2; // Return the error that was thrown in insert()
 	
 	bufTable[frameNumber].Set(file, pageNo); // Set the frame
 	pagePtr = &(bufPool[frameNumber]); // Return the pointer to the actual data frame	
@@ -232,23 +228,22 @@ const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page)  {
 const Status BufMgr::disposePage(File* file, const int pageNo) {
 	
 	int frameNumber, framePage;
-	Status try1, try2; // Used for methods that return status'
+	Status try1, try2, try3; // Used for methods that return status'
 	BufDesc* frameData;
 	File* frameFile;	
 	
 	try1 = hashTable->lookup(file, pageNo, frameNumber);
+	if (try1 != OK) return try1;
+
+	frameData = &bufTable[frameNumber];
+	frameFile = frameData->file;
+	framePage = frameData->pageNo;
 	
-	if(try1 != HASHNOTFOUND)
-	{
-		frameData = &bufTable[frameNumber];
-		frameFile = frameData->file;
-		framePage = frameData->pageNo;
-		
-		hashTable->remove(frameFile, framePage); // Remove entry from the hashTable
-		try2 = frameFile->disposePage(framePage); // Dispose of the page on disk
-		
-		frameData->Clear(); // Wipe the frame clean
-	}
+	try3 = hashTable->remove(frameFile, framePage); // Remove entry from the hashTable
+	if (try3 != OK) return try3;
+
+	try2 = frameFile->disposePage(framePage); // Dispose of the page on disk
+	frameData->Clear(); // Wipe the frame clean
 		
 	return try2;
 }
@@ -258,7 +253,8 @@ const Status BufMgr::flushFile(const File* file) {
 
 	BufDesc* currentFrame;
 	Page* currentPage;
-	int currentPageNo;	
+	int currentPageNo;
+	Status attempt;	
 
 	for(int i=0; i<numBufs; i++)
 	{
@@ -275,10 +271,15 @@ const Status BufMgr::flushFile(const File* file) {
 			
 			if(currentFrame->dirty) // Write back to disk if dirty
 			{
-				(currentFrame->file)->writePage(currentPageNo, currentPage);
+				attempt = (currentFrame->file)->writePage(currentPageNo, currentPage);
+				if (attempt != OK) return attempt;				
+
 				currentFrame->dirty = false;
 			}
-			hashTable->remove(currentFrame->file, currentPageNo); // Remove from hashtable
+
+			attempt = hashTable->remove(currentFrame->file, currentPageNo); // Remove from hashtable
+			if (attempt != OK) return attempt;
+
 			currentFrame->Clear(); // Clear the frame for use by another page
 		}
 	}
