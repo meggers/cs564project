@@ -28,5 +28,5 @@
 *.app
 
 # Eclipse stuff
-.__afs7B6D
+.__afs*
 .metadata/*
