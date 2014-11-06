@@ -127,8 +127,6 @@ const Status BufMgr::allocBuf(int & frame) {
 const Status BufMgr::readPage(File* file, const int PageNo, Page*& page) {
 	
 	int frameNumber;
-	BufDesc* existingFrame;
-	Page* existingPage;
 	Status pageStatus;
 	
 	pageStatus = hashTable->lookup(file, PageNo, frameNumber);
@@ -137,11 +135,9 @@ const Status BufMgr::readPage(File* file, const int PageNo, Page*& page) {
 	{
 		case OK:
 		{
-			existingFrame = &(bufTable[frameNumber]);
-			existingPage = &(bufPool[frameNumber]);
-			existingFrame->refbit = true;
-			existingFrame->pinCnt++;
-			page = existingPage;
+			bufTable[frameNumber].refbit = true;
+			bufTable[frameNumber].pinCnt ++;
+			page = &(bufPool[frameNumber]);
 			break;		
 		}
 		case HASHNOTFOUND:
