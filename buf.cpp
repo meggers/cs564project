@@ -42,7 +42,7 @@ BufMgr::BufMgr(const int bufs)
 
 
 BufMgr::~BufMgr() {
-	
+
 	BufDesc* currentFrame;
 	Page* currentPage;
 	int currentPageNo;	
@@ -63,12 +63,11 @@ BufMgr::~BufMgr() {
 		{
 			(currentFrame->file)->writePage(currentPageNo, currentPage);
 		}
-		hashTable->remove(currentFrame->file, currentPageNo); // Remove from hashtable
 	}	
 	
 	// Deallocate the space in memory
-	memset(bufTable, 0, numBufs * sizeof(BufDesc));
-	memset(bufPool, 0, numBufs * sizeof(Page));
+	delete []  bufPool;
+	delete [] bufTable;
 }
 
 
@@ -78,6 +77,7 @@ const Status BufMgr::allocBuf(int & frame) {
 	{
 		advanceClock();
 		BufDesc* frameData = &bufTable[clockHand];
+		Page* dirtyPage = &bufPool[clockHand];
 	
 		if(frameData->valid) // Valid Set? YES
 		{
@@ -108,6 +108,7 @@ const Status BufMgr::allocBuf(int & frame) {
 					}
 					else // Dirty Bit Set? NO
 					{
+						hashTable->remove(frameData->file, frameData->pageNo); // Remove the entry FIRST!	
 						frameData->Clear(); // See post CID=162
 						frame = clockHand;
 						return OK;
@@ -181,12 +182,12 @@ const Status BufMgr::unPinPage(File* file, const int PageNo, const bool dirty) {
 	BufDesc* frameData;
 	
 	try1 = hashTable->lookup(file, PageNo, frameNumber); // Retrieve the frameNumber from the hashtable
-	
+
 	if(try1 != OK)
 		return try1; // Return the error thrown by the hashtable (HASHNOTFOUND)
 	
 	frameData = &bufTable[frameNumber]; // Get the frame metadata
-	
+
 	if(dirty)
 		frameData->dirty = true;
 	
@@ -197,7 +198,6 @@ const Status BufMgr::unPinPage(File* file, const int PageNo, const bool dirty) {
 	{
 		oldCount = frameData->pinCnt;
 		frameData->pinCnt = oldCount - 1; // Decrement the pin count
-		
 	}
 
 	return OK;

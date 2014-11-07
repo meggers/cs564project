@@ -208,7 +208,6 @@ int main()
     cout << "Test passed" <<endl<<endl;
 
     for (i = 0; i < num; i++) {
-      cout << i << ": " << (char*)page << endl;
       CALL(bufMgr->allocPage(file4, j[i], page));
       sprintf((char*)page, "test.4 Page %d %7.1f", j[i], (float)j[i]);
     }
@@ -235,6 +234,7 @@ int main()
     for (i = 1; i < num; i++) {
       CALL(bufMgr->readPage(file1, i, page));
       sprintf((char*)&cmp, "test.1 Page %d %7.1f", i, (float)i);
+      cout << "Page: " << (char*)page << endl << "CMP: " << (char*)cmp << endl;
       ASSERT(memcmp(page, &cmp, strlen((char*)&cmp)) == 0);
       cout << (char*)page << endl;
     }
@@ -247,8 +247,9 @@ int main()
 
     cout << "Test passed"<<endl<<endl;
 
-    for (i = 1; i < num; i++) 
+    for (i = 1; i < num; i++) {
       CALL(bufMgr->unPinPage(file1, i, true));
+    }
 
     CALL(bufMgr->flushFile(file1));
 
