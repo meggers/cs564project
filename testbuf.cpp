@@ -208,6 +208,7 @@ int main()
     cout << "Test passed" <<endl<<endl;
 
     for (i = 0; i < num; i++) {
+      cout << i << ": " << (char*)page << endl;
       CALL(bufMgr->allocPage(file4, j[i], page));
       sprintf((char*)page, "test.4 Page %d %7.1f", j[i], (float)j[i]);
     }

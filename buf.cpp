@@ -96,7 +96,6 @@ const Status BufMgr::allocBuf(int & frame) {
 				{
 					if(frameData->dirty) // Dirty Bit Set? YES
 					{
-						Status fileFlush = flushFile(frameData->file);
 						
 						if(fileFlush != OK)
 							return fileFlush;
