@@ -11,7 +11,7 @@ using namespace std;
 
 // define if debug output wanted
 
-#define DEBUGIO
+//#define DEBUGIO
 //#define DEBUGFREE
 
 // forward class definition for db

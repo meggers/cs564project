@@ -96,11 +96,13 @@ const Status BufMgr::allocBuf(int & frame) {
 				{
 					if(frameData->dirty) // Dirty Bit Set? YES
 					{
+						Status pageWrite = frameData->file->writePage(frameData->pageNo, dirtyPage);
 						
-						if(fileFlush != OK)
-							return fileFlush;
+						if(pageWrite != OK)
+							return pageWrite;
 						
-						frameData->Clear(); // See post CID=162
+						hashTable->remove(frameData->file, frameData->pageNo); // Remove the entry FIRST!	
+						frameData->Clear(); // See post CID=162						
 						frame = clockHand;
 						return OK;
 					}
