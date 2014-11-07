@@ -78,6 +78,7 @@ const Status BufMgr::allocBuf(int & frame) {
 	{
 		advanceClock();
 		BufDesc* frameData = &bufTable[clockHand];
+		Page* dirtyPage = &bufPool[clockHand];
 	
 		if(frameData->valid) // Valid Set? YES
 		{
@@ -96,13 +97,13 @@ const Status BufMgr::allocBuf(int & frame) {
 				{
 					if(frameData->dirty) // Dirty Bit Set? YES
 					{
-						Status fileFlush = flushFile(frameData->file);
+						Status pageWrite = frameData->file->writePage(frameData->pageNo, dirtyPage);
 						
-						if(fileFlush != OK)
-							return fileFlush;
+						if(pageWrite != OK)
+							return pageWrite;
 						
-						frameData->Clear(); // See post CID=162
-						hashTable->remove(frameData->file, frameData->pageNo); // Make sure to remove the entry!
+						hashTable->remove(frameData->file, frameData->pageNo); // Remove the entry FIRST!	
+						frameData->Clear(); // See post CID=162						
 						frame = clockHand;
 						return OK;
 					}
